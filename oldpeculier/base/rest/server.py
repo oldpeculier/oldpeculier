@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 import time # might be used for shutdown
+import signal
 import socket
+import sys
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from multiprocessing import Process, Event, Semaphore, Value, cpu_count
-from threading import Thread
 from SocketServer import BaseServer # for shutdown
+from threading import Thread
+sys.path.append('../../../../oldpeculier')
+from oldpeculier.base.common import Common
 
 class PooledProcessMixIn:
     """
@@ -13,7 +17,6 @@ A Mix-in added by inheritance to any Socket Server like BaseHTTPServer to provid
 A Pool of forked processes each having a pool of threads
     """
     def _handle_request_noblock(self):
-        if not getattr(self, '_pool_initialized', False): self._init_pool()
         self._event.clear()
         self._semaphore.release()
         self._event.wait()
@@ -35,13 +38,10 @@ A Pool of forked processes each having a pool of threads
                 self.shutdown_request(request)
 
 
-    def _init_pool(self):
-        self._pool_initialized = True
+    def __init__(self):
         self._process_n = getattr(self, '_process_n', max(2, cpu_count()))
         self._thread_n = getattr(self, '_thread_n', 64)
         self._keep_running = Value('i', 1)
-        self._shutdown_event = Event()
-        self._shutdown_event.clear()
         self._event = Event()
         self._semaphore = Semaphore(1)
         self._semaphore.acquire()
@@ -64,30 +64,27 @@ A Pool of forked processes each having a pool of threads
         # we don't need this because they are non-daemon threads
         # but this did not work for me
         # FIXME: replace this with event
-        self._shutdown_event.wait()
-        #for t in threads: t.join()
+        #self._shutdown_event.wait()
+        for t in threads: t.join()
 
     def _thread_loop(self):
         while(self._keep_running.value):
             self._semaphore.acquire() # wait for resource
             self._real_handle_request_noblock()
 
-    def pool_shutdown(self):
-        self._keep_running.value = 0
-        self._shutdown_event.set()
-
     def shutdown(self):
-        self.pool_shutdown()
-        BaseServer.shutdown(self) # super(BaseServer).shutdown()
-        # TODO: is the below needed ?
-        #time.sleep(1) # give them 1 second for clean shutdown
-        #for p in self._processes: p.terminate()
+        print dir(self._processes[0])
+        for p in self._processes:
+            print "shutting down process %s" %(p.pid)
+            p.terminate()
 
-class RestServer(PooledProcessMixIn, HTTPServer):
-    def __init__(self):
+class RestServer(PooledProcessMixIn, HTTPServer, Common):
+    def __init__(self, **args):
+        for key, value in args.items():
+            setattr(self,key,value)
         HTTPServer.__init__(self, ('localhost',8000), Handler)
-        self._init_pool()
-        print self._thread_n
+        PooledProcessMixIn.__init__(self)
+        Common.__init__(self, **args)
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -99,4 +96,11 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write('\n')
         return
 
-RestServer().serve_forever()
+server = RestServer(logger_level='warning', logger_location='/tmp/oldpeculier2')
+
+def on_interrupt(signal, frame):
+    server.shutdown()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT,on_interrupt)
+server.serve_forever()

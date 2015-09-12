@@ -1,8 +1,12 @@
 #!/bin/env python
 import re
+import sys
 from httplib import HTTPConnection, HTTPSConnection
 from urlparse import urlparse
-class RestClient():
+sys.path.append('../../../../oldpeculier')
+from oldpeculier.base.common import Common
+
+class RestClient(Common):
     def __init__(self, **args):
         self.__required_arguments=['url']
         for key, value in args.items():
@@ -29,3 +33,4 @@ class RestClient():
                 self.agent = HTTPConnection(self.url,self.port)
             else:
                 raise ValueError("Scheme {0} is not a supported type for class {1}".format(self.scheme,self.__class__))
+        Common.__init__(self, **args)
