@@ -2,7 +2,7 @@
 import re
 from httplib import HTTPConnection, HTTPSConnection
 from urlparse import urlparse
-class Rest():
+class RestClient():
     def __init__(self, **args):
         self.__required_arguments=['url']
         for key, value in args.items():
