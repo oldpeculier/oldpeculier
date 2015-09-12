@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import time # might be used for shutdown
-import signal
 import socket
+import signal
 import sys
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
@@ -11,11 +11,9 @@ from threading import Thread
 sys.path.append('../../../../oldpeculier')
 from oldpeculier.base.common import Common
 
+__version__ = '0.0.1'
+
 class PooledProcessMixIn:
-    """
-A Mix-in added by inheritance to any Socket Server like BaseHTTPServer to provide concurrency through
-A Pool of forked processes each having a pool of threads
-    """
     def _handle_request_noblock(self):
         self._event.clear()
         self._semaphore.release()
@@ -72,11 +70,12 @@ A Pool of forked processes each having a pool of threads
             self._semaphore.acquire() # wait for resource
             self._real_handle_request_noblock()
 
-    def shutdown(self):
+    def shutdown(self,signal=None,frame=None):
         print dir(self._processes[0])
         for p in self._processes:
             print "shutting down process %s" %(p.pid)
             p.terminate()
+        exit(0)
 
 class RestServer(PooledProcessMixIn, HTTPServer, Common):
     def __init__(self, **args):
@@ -85,22 +84,9 @@ class RestServer(PooledProcessMixIn, HTTPServer, Common):
         HTTPServer.__init__(self, ('localhost',8000), Handler)
         PooledProcessMixIn.__init__(self)
         Common.__init__(self, **args)
+        signal.signal(signal.SIGINT,self.shutdown)
 
-class Handler(BaseHTTPRequestHandler):
+class RestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        message = "hello"
         print dir(self)
-        self.wfile.write(message)
-        self.wfile.write('\n')
-        return
 
-server = RestServer(logger_level='warning', logger_location='/tmp/oldpeculier2')
-
-def on_interrupt(signal, frame):
-    server.shutdown()
-    sys.exit(0)
-
-signal.signal(signal.SIGINT,on_interrupt)
-server.serve_forever()

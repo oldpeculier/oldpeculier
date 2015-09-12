@@ -6,6 +6,8 @@ from urlparse import urlparse
 sys.path.append('../../../../oldpeculier')
 from oldpeculier.base.common import Common
 
+__version__ = '0.0.1'
+
 class RestClient(Common):
     def __init__(self, **args):
         self.__required_arguments=['url']

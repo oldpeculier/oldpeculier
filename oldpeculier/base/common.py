@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import logging
 import re
+
+__version__ = '0.0.1'
+
 class Common(object):
     def __init__(self, **args):
         logger = logging.getLogger('abc')
