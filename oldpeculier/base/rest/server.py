@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import time # might be used for shutdown
+import re
 import socket
 import signal
 import sys
@@ -78,15 +79,40 @@ class PooledProcessMixIn:
         exit(0)
 
 class RestServer(PooledProcessMixIn, HTTPServer, Common):
+    routes={}
     def __init__(self, **args):
         for key, value in args.items():
             setattr(self,key,value)
-        HTTPServer.__init__(self, ('localhost',8000), Handler)
-        PooledProcessMixIn.__init__(self)
         Common.__init__(self, **args)
+
+    def register_route(self, urlpatterns, verbs, method):
+        for verb in verbs:
+            if verb not in self.routes:
+                self.routes[verb]=[]
+            self.routes[verb].append({'urls':urlpatterns,'method':method})
+
+    def serve_forever(self):
+        HTTPServer.__init__(self, ('localhost',8000), RestHandler)
+        PooledProcessMixIn.__init__(self)
         signal.signal(signal.SIGINT,self.shutdown)
+        print self.routes
+        return super(RestServer,self).serve_forever()
+        
 
 class RestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        print dir(self)
+        match_length=0
+        route_method=None
+        print (self.server.routes["GET"])
+        for route in self.server.routes["GET"]:
+            for url in route["urls"]:
+                match = re.compile("("+url+")").match(self.path)
+                if hasattr(match,"groups"):
+                    matched_group = match.group()
+                    print matched_group
+                    if match_length < matched_group:
+                        match_length= len(matched_group)
+                        route_method = route["method"]
+        if route_method:
+            route_method(self)
 

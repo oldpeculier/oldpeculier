@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 import signal
-from oldpeculier.base.rest.server import RestServer
+from oldpeculier.base.rest.server import RestServer, RestHandler
 from oldpeculier.base.rest.client import RestClient
 #b = Rest(url="https://www.google.com", port=123, protocol="https")
 #print b.url
@@ -9,13 +9,21 @@ from oldpeculier.base.rest.client import RestClient
 def handler(request):
     request.send_response(200)
     request.end_headers()
-    message = ""
-    print dir(request)
+    message = "sup"
+    request.wfile.write(message)
+    request.wfile.write('\n')
+
+def handler2(request):
+    request.send_response(200)
+    request.end_headers()
+    message = "nah"
     request.wfile.write(message)
     request.wfile.write('\n')
 
 #server.register_route(urlpatterns=[],methods=[],handler=handler)
 server = RestServer(logger_level='warning', logger_location='/tmp/oldpeculier2')
+server.register_route(["/.*"],["GET"],handler)
+server.register_route(["/secure/.*","/nonsecure/.*"],["GET"],handler2)
 #def somethingelse(signal,frame):
 #    print "hello"
 #    server.server_shutdown(signal,frame)
