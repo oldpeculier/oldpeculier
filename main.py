@@ -21,7 +21,7 @@ def handler2(request):
     request.wfile.write('\n')
 
 #server.register_route(urlpatterns=[],methods=[],handler=handler)
-server = RestServer(logger_level='warning', logger_location='/tmp/oldpeculier2')
+server = RestServer(logger_level='warning')#, logger_location='/tmp/oldpeculier2')
 server.logger.warning("did this work?")
 server.register_route(["/.*"],["GET"],handler)
 server.register_route(["/secure/.*","/nonsecure/.*"],["GET"],handler2)

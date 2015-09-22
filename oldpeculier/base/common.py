@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import logging
 import re
+import sys
 
 class Common(object):
     def __init__(self, **args):
@@ -14,7 +15,7 @@ class Common(object):
             handler = logging.FileHandler(args['logger_location'])
             del self.logger_location
         else:
-            handler = logging.FileHandler('/tmp/oldpeculier.log')
+            handler = logging.StreamHandler(sys.stdout)
 
         formatter = logging.Formatter('%(levelname)s [PID:%(process)d] %(asctime)s [FILE:%(filename)s:%(lineno)d] - %(message)s')
         handler.setFormatter(formatter) 
