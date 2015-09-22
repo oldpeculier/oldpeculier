@@ -2,11 +2,13 @@
 import logging
 import re
 
-__version__ = '0.0.1'
-
 class Common(object):
     def __init__(self, **args):
-        logger = logging.getLogger('abc')
+        if hasattr(self, 'logger_name'):
+            self.logger = logging.getLogger(args['logger_name'])
+            del self.logger_name
+        else:
+            self.logger = logging.getLogger(self.__class__.__name__)
 
         if hasattr(self,'logger_location'):
             handler = logging.FileHandler(args['logger_location'])
@@ -14,16 +16,21 @@ class Common(object):
         else:
             handler = logging.FileHandler('/tmp/oldpeculier.log')
 
-        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        formatter = logging.Formatter('%(levelname)s [PID:%(process)d] %(asctime)s [FILE:%(filename)s:%(lineno)d] - %(message)s')
         handler.setFormatter(formatter) 
-        logger.addHandler(handler)
-        if hasattr(self,'logger_level'):
-            if re.search('^info$',args['logger_level'],re.IGNORECASE): 
-                logger.setLevel(logging.INFO)
-            elif re.search('^(warn|warning)$',args['logger_level'],re.IGNORECASE):
-                logger.setLevel(logging.WARNING)
+        self.logger.addHandler(handler)
+        if hasattr(self,'self.logger_level'):
+            if re.search('^debug$',args['self.logger_level'],re.IGNORECASE): 
+                self.logger.setLevel(logging.DEBUG)
+            elif re.search('^info$',args['self.logger_level'],re.IGNORECASE):
+                self.logger.setLevel(logging.INFO)
+            elif re.search('^(warn|warning)$',args['self.logger_level'],re.IGNORECASE):
+                self.logger.setLevel(logging.WARNING)
+            elif re.search('^(err|error)$',args['self.logger_level'],re.IGNORECASE):
+                self.logger.setLevel(logging.ERROR)
+            elif re.search('^critical$',args['self.logger_level'],re.IGNORECASE):
+                self.logger.setLevel(logging.CRITICAL)
             else:
-                logger.setLevel(logging.WARNING)
-            self.logger = logging.getLogger('abc')
+                self.logger.setLevel(logging.WARNING)
             del self.logger_level
 

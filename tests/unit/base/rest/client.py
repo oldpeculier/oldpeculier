@@ -5,13 +5,13 @@ import unittest
 from oldpeculier.base.rest.client import RestClient
 from httplib import HTTPConnection, HTTPSConnection
 
-def initialize(**args):
-    return RestClient(**args)
+def initialize(**kargs):
+    return RestClient(**kargs)
 
-class InitializationTests(unittest.TestCase):
+class RestClientTests(unittest.TestCase):
     def __init__(self,testmethod):
         self.url = "://www.amazon.com"
-        super(InitializationTests,self).__init__(testmethod)
+        super(RestClientTests,self).__init__(testmethod)
 
     def test_if_bad_schemes_are_rejected(self):
         try:
@@ -51,5 +51,5 @@ class InitializationTests(unittest.TestCase):
         self.assertIsInstance(rest.agent,HTTPSConnection)
 
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(InitializationTests)
+    suite = unittest.TestLoader().loadTestsFromTestCase(RestClientTests)
     unittest.TextTestRunner(verbosity=2).run(suite)
