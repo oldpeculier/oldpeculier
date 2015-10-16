@@ -11,8 +11,8 @@ __version__ = '0.0.1'
 class RestClient(Common):
     def __init__(self, **args):
         self.__required_arguments=['url']
-        for key, value in args.items():
-            setattr(self,key,value)
+        #for key, value in args.items():
+        #    setattr(self,key,value)
         for argument in self.__required_arguments:
             try:
                 getattr(self,argument)
