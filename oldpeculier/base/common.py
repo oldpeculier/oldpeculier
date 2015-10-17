@@ -5,8 +5,30 @@ import sys
 
 class Common(object):
     def __init__(self, **args):
+        required_arguments = []
+        protected_arguments = []
+        required_arguments_key = "_{0}__required_arguments".format(type(self).__name__)
+        protected_arguments_key = "_{0}__protected_arguments".format(type(self).__name__)
+
+        if hasattr(self,required_arguments_key):
+            required_arguments = getattr(self,required_arguments_key)
+
+        if hasattr(self,protected_arguments_key):
+            protected_arguments=getattr(self,protected_arguments_key)
+
+        protected_arguments="^{0}$".format("|".join(protected_arguments))
+
         for key, value in args.items():
-            setattr(self,key,value)
+            if not re.search(protected_arguments,key):
+                setattr(self,key,value)
+
+        for argument in required_arguments:
+            try:
+                getattr(self,argument)
+            except AttributeError:
+                raise ValueError("Argument {0} is required as a constructor for class {1}"
+                    .format(argument,type(self).__name__))
+
         if hasattr(self, 'logger_name'):
             self.logger = logging.getLogger(args['logger_name'])
             del self.logger_name

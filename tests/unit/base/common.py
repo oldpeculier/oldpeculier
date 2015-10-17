@@ -14,6 +14,11 @@ class CommonTests(unittest.TestCase):
     def __init__(self,testmethod):
         super(CommonTests,self).__init__(testmethod)
 
+    def test_that_attributes_are_inherited(self):
+        common = initialize(first="one",second="two")
+        self.assertEquals(common.first,"one")
+        self.assertEquals(common.second,"two")
+
     def test_setting_logger_properties(self):
         common = initialize()
         self.assertIsInstance(common.logger.handlers[0],logging.StreamHandler)
