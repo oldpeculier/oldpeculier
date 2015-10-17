@@ -4,7 +4,7 @@ import re
 import sys
 
 class Common(object):
-    def __init__(self, **args):
+    def __init__(self, **kwargs):
         required_arguments = []
         protected_arguments = []
         required_arguments_key = "_{0}__required_arguments".format(type(self).__name__)
@@ -18,7 +18,7 @@ class Common(object):
 
         protected_arguments="^{0}$".format("|".join(protected_arguments))
 
-        for key, value in args.items():
+        for key, value in kwargs.items():
             if not re.search(protected_arguments,key):
                 setattr(self,key,value)
 
@@ -30,13 +30,13 @@ class Common(object):
                     .format(argument,type(self).__name__))
 
         if hasattr(self, 'logger_name'):
-            self.logger = logging.getLogger(args['logger_name'])
+            self.logger = logging.getLogger(kwargs['logger_name'])
             del self.logger_name
         else:
             self.logger = logging.getLogger(self.__class__.__name__)
 
         if hasattr(self,'logger_location'):
-            handler = logging.FileHandler(args['logger_location'])
+            handler = logging.FileHandler(kwargs['logger_location'])
             del self.logger_location
         else:
             handler = logging.StreamHandler(sys.stdout)
@@ -46,15 +46,15 @@ class Common(object):
         handler.setFormatter(formatter) 
         self.logger.addHandler(handler)
         if hasattr(self,'logger_level'):
-            if re.search('^debug$',args['logger_level'],re.IGNORECASE): 
+            if re.search('^debug$',kwargs['logger_level'],re.IGNORECASE): 
                 self.logger.setLevel(logging.DEBUG)
-            elif re.search('^info$',args['logger_level'],re.IGNORECASE):
+            elif re.search('^info$',kwargs['logger_level'],re.IGNORECASE):
                 self.logger.setLevel(logging.INFO)
-            elif re.search('^(warn|warning)$',args['logger_level'],re.IGNORECASE):
+            elif re.search('^(warn|warning)$',kwargs['logger_level'],re.IGNORECASE):
                 self.logger.setLevel(logging.WARNING)
-            elif re.search('^(err|error)$',args['logger_level'],re.IGNORECASE):
+            elif re.search('^(err|error)$',kwargs['logger_level'],re.IGNORECASE):
                 self.logger.setLevel(logging.ERROR)
-            elif re.search('^critical$',args['logger_level'],re.IGNORECASE):
+            elif re.search('^critical$',kwargs['logger_level'],re.IGNORECASE):
                 self.logger.setLevel(logging.CRITICAL)
             else:
                 self.logger.setLevel(logging.WARNING)

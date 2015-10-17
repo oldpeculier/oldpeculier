@@ -3,15 +3,17 @@ import sys
 sys.path.append('../../../../../oldpeculier/')
 import unittest
 from oldpeculier.base.rest.client import RestClient
+from tests.unit.abc import BaseUnitTest
 from httplib import HTTPConnection, HTTPSConnection
 
 def initialize(**kargs):
     return RestClient(**kargs)
 
-class RestClientTests(unittest.TestCase):
-    def __init__(self,testmethod):
+class RestClientTests(unittest.TestCase,BaseUnitTest):
+    def __init__(self,testmethod=None):
         self.url = "://www.amazon.com"
-        super(RestClientTests,self).__init__(testmethod)
+        if testmethod:
+            super(RestClientTests,self).__init__(testmethod)
 
     def test_if_missing_arguments_are_caught(self):
         try:
@@ -65,8 +67,6 @@ class RestClientTests(unittest.TestCase):
         rest = initialize(url="https"+self.url+":8888",scheme=scheme,port=port)
         self.assertEquals(rest.port,8888)
         self.assertEquals(rest.scheme,"https")
-        
 
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(RestClientTests)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    RestClientTests().main(sys.argv[1:])

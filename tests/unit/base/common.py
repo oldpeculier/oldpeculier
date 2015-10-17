@@ -6,13 +6,15 @@ import logging
 import tempfile
 from cStringIO import StringIO
 from oldpeculier.base.common import Common
+from tests.unit.abc import BaseUnitTest
 
 def initialize(**kargs):
     return Common(**kargs)
     
-class CommonTests(unittest.TestCase):
-    def __init__(self,testmethod):
-        super(CommonTests,self).__init__(testmethod)
+class CommonTests(unittest.TestCase,BaseUnitTest):
+    def __init__(self,testmethod=None):
+        if testmethod:
+            super(CommonTests,self).__init__(testmethod)
 
     def test_that_attributes_are_inherited(self):
         common = initialize(first="one",second="two")
@@ -72,5 +74,4 @@ class CommonTests(unittest.TestCase):
             "^WARNING \[PID:.*\] .* \[FILE:common.py:.*\] - test 123 321 tset$")
 
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(CommonTests)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    CommonTests().main(sys.argv[1:])

@@ -17,11 +17,10 @@ __version__ = '0.0.1'
 # If a port or scheme is include in the url argument, it will override all
 
 class RestClient(Common):
+    __required_arguments = ['url']
+    __protected_arguments = ['agent']
     def __init__(self, **args):
-        self.__required_arguments = ['url']
-        self.__protected_arguments = ['agent']
         Common.__init__(self, **args)
-
         url = urlparse(self.url)
         if url.scheme == '':
             self.scheme="http"

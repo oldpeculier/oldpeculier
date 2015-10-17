@@ -80,19 +80,26 @@ class PooledProcessMixIn:
 
 class RestServer(PooledProcessMixIn, HTTPServer, Common):
     routes={}
-    def __init__(self, **args):
-        for key, value in args.items():
-            setattr(self,key,value)
-        Common.__init__(self, **args)
+    def __init__(self, **kwargs):
+        #for key, value in kwargs.items():
+        #    setattr(self,key,value)
+        Common.__init__(self, **kwargs)
 
-    def register_route(self, urlpatterns, verbs, method):
+    def default_handler(self,request):
+        request.send_response(200)
+        request.end_headers()
+        message = "This is the default handler. It echo's what you send"
+        request.wfile.write(message)
+        request.wfile.write('\n')
+
+    def register_route(self, urlpatterns, verbs, handler=default_handler):
         for verb in verbs:
             if verb not in self.routes:
                 self.routes[verb]=[]
-            self.routes[verb].append({'urls':urlpatterns,'method':method})
+            self.routes[verb].append({'urls':urlpatterns,'handler':handler})
 
     def serve_forever(self):
-        HTTPServer.__init__(self, ('localhost',8000), RestHandler)
+        HTTPServer.__init__(self, ('localhost',3333), RestHandler)
         PooledProcessMixIn.__init__(self)
         signal.signal(signal.SIGINT,self.shutdown)
         print self.routes
@@ -102,7 +109,7 @@ class RestServer(PooledProcessMixIn, HTTPServer, Common):
 class RestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         match_length=0
-        route_method=None
+        route_handler=None
         print (self.server.routes["GET"])
         for route in self.server.routes["GET"]:
             for url in route["urls"]:
@@ -112,7 +119,7 @@ class RestHandler(BaseHTTPRequestHandler):
                     print matched_group
                     if match_length < matched_group:
                         match_length= len(matched_group)
-                        route_method = route["method"]
-        if route_method:
-            route_method(self)
+                        route_handler = route["handler"]
+        if route_handler:
+            route_handler(self)
 
