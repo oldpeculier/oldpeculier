@@ -9,3 +9,4 @@ EOF
 . ~/.vimrc
 git config --global user.name "Chava Jurado"
 git config --global user.email "chava.jurado@gmail.com" 
+sudo apt-get install -fy python-setuptools
