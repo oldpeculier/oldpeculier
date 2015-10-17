@@ -13,7 +13,8 @@ sys.path.append('../../../../oldpeculier')
 from oldpeculier.base.common import Common
 
 __version__ = '0.0.1'
-
+# Credit to Muayyad Alsadi:
+# https://github.com/muayyad-alsadi/python-PooledProcessMixIn
 class PooledProcessMixIn:
     def _handle_request_noblock(self):
         self._event.clear()
