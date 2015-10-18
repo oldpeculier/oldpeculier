@@ -3,7 +3,7 @@ import re
 import sys
 from httplib import HTTPConnection, HTTPSConnection
 from urlparse import urlparse
-sys.path.append('../../../oldpeculier')
+#sys.path.append('../../../oldpeculier')
 from oldpeculier.common import Common
 
 __version__ = '0.0.1'

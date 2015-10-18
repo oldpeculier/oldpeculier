@@ -23,7 +23,13 @@ class RestServerTests(unittest.TestCase,BaseUnitTest):
 
     def test_register_route(self):
         server = initialize()
-        server.register_route(urlpatterns=["/.*"], verbs=["GET"])
+        server.register_route(verbs=["GET","POST"], urlpatterns=["/.*"])
+        self.assertEqual(len(server.routes),2)
+        self.assertTrue(server.routes.has_key("GET"))
+        self.assertTrue(server.routes.has_key("POST"))
+        self.assertEquals(server.routes["GET"][0]["handler"].__name__,'default_handler')
+        self.assertEqual(len(server.routes["POST"][0]["urls"]),1)
+        self.assertEqual(server.routes["POST"][0]["urls"][0],"/.*")
 
 if __name__ == '__main__':
     RestServerTests().main(sys.argv[1:])

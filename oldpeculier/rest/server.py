@@ -9,10 +9,9 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from multiprocessing import Process, Event, Semaphore, Value, cpu_count
 from SocketServer import BaseServer # for shutdown
 from threading import Thread
-sys.path.append('../../../oldpeculier')
+#sys.path.append('../../../oldpeculier')
 from oldpeculier.common import Common
 
-__version__ = '0.0.1'
 # Credit to Muayyad Alsadi:
 # https://github.com/muayyad-alsadi/python-PooledProcessMixIn
 class PooledProcessMixIn:
@@ -73,25 +72,26 @@ class PooledProcessMixIn:
             self._real_handle_request_noblock()
 
     def shutdown(self,signal=None,frame=None):
-        print dir(self._processes[0])
         for p in self._processes:
             print "shutting down process %s" %(p.pid)
             p.terminate()
         exit(0)
 
+def default_handler(request):
+    message = "\nThis is the default handler. It echo's what you send.\n\n"
+    message += "REQUEST HEADERS\n"
+    for header in request.headers.keys():
+        message += " > {0}: {1}\n".format(header,request.headers.get(header))
+        
+    request.send_response(200)
+    request.send_header("Content-Length",len(message))
+    request.end_headers()
+    request.wfile.write(message)
+
 class RestServer(PooledProcessMixIn, HTTPServer, Common):
     routes={}
     def __init__(self, **kwargs):
-        #for key, value in kwargs.items():
-        #    setattr(self,key,value)
         Common.__init__(self, **kwargs)
-
-    def default_handler(self,request):
-        request.send_response(200)
-        request.end_headers()
-        message = "This is the default handler. It echo's what you send"
-        request.wfile.write(message)
-        request.wfile.write('\n')
 
     def register_route(self, urlpatterns, verbs, handler=default_handler):
         for verb in verbs:
@@ -103,7 +103,6 @@ class RestServer(PooledProcessMixIn, HTTPServer, Common):
         HTTPServer.__init__(self, ('localhost',3333), RestHandler)
         PooledProcessMixIn.__init__(self)
         signal.signal(signal.SIGINT,self.shutdown)
-        print self.routes
         return super(RestServer,self).serve_forever()
         
 
@@ -111,13 +110,11 @@ class RestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         match_length=0
         route_handler=None
-        print (self.server.routes["GET"])
         for route in self.server.routes["GET"]:
             for url in route["urls"]:
                 match = re.compile("("+url+")").match(self.path)
                 if hasattr(match,"groups"):
                     matched_group = match.group()
-                    print matched_group
                     if match_length < matched_group:
                         match_length= len(matched_group)
                         route_handler = route["handler"]
