@@ -23,9 +23,9 @@ def handler2(request):
 #server.register_route(urlpatterns=[],methods=[],handler=handler)
 server = RestServer(logger_level='warning')#, logger_location='/tmp/oldpeculier2')
 #server.logger.warning("did this work?")
-server.register_route(["/.*"],["GET"],handler)
+#server.register_route(["/.*"],["GET"],handler)
 server.register_route(["/secure/.*","/nonsecure/.*"],["GET"],handler2)
-server.register_route(["/default"],["GET"])
+server.register_route(["/default"],["GET","POST"])
 #def somethingelse(signal,frame):
 #    print "hello"
 #    server.server_shutdown(signal,frame)

@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-import time # might be used for shutdown
+import json
 import re
 import socket
 import signal
 import sys
+import time # might be used for shutdown
 import urlparse
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
@@ -79,26 +80,41 @@ class PooledProcessMixIn:
         exit(0)
 
 def default_handler(request):
+    qparams={}
+    bparams={}
+    params={}
     message = "\nThis is the default handler. It echo's what you send.\n\n"
     message += "REQUEST HEADERS\n"
     for header in request.headers.keys():
         message += " > {0}: {1}\n".format(header,request.headers.get(header))
-    message += "\nREQUEST PARAMETERS\n" 
+
     parsed_url = urlparse.urlparse(request.path)
     if  parsed_url.query:
-        params = urlparse.parse_qs(parsed_url.query)
-        for param in params.keys():
-            value=params.get(param)
-            if isinstance(value,list):
-                for v in value:
-                    message += " > {0}: {1}\n".format(param,v)
-            else:
-                message += " > {0}: {1}\n".format(param,params.get(param))
+        qparams = urlparse.parse_qs(parsed_url.query)
+        for key, param in qparams.items():
+            if len(param) == 1:
+                qparams[key]=param[0]
+
     message += "\nREQUEST BODY\n" 
     if request.headers.has_key('Content-Length'):
         contentlength = int(request.headers.get('Content-Length'))
         body = request.rfile.read(contentlength)
+        try:
+            bparams = json.loads(body)
+            body = json.dumps(bparams, sort_keys=True, indent=2, separators=(',',': '))
+        except ValueError, e:
+            pass
         message += body+"\n"
+
+    params = dict(qparams.items() + bparams.items())
+    message += "\nREQUEST PARAMETERS\n" 
+    for key, param in params.items():
+        if isinstance(param,list):
+            for p in param:
+                message += " > {0}: {1}\n".format(key,p)
+        else:
+            message += " > {0}: {1}\n".format(key,param)
+
     request.send_response(200)
     request.send_header("Content-Length",len(message))
     request.end_headers()
@@ -123,31 +139,54 @@ class RestServer(PooledProcessMixIn, HTTPServer, Common):
         
 
 class RestHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+    def method_not_allowed(self):
+        self.send(code=401, message="Authorization Required\n")
+
+    def method_not_allowed(self):
+        self.send(code=403, message="Not Authorized\n")
+
+    def not_found(self):
+        self.send(code=404, message="Not Found\n")
+
+    def method_not_allowed(self):
+        self.send(code=405, message="Method Not Allowed\n")
+
+    def send(self,code,message):
+        self.send_response(code)
+        self.send_header("Content-Length",len(message))
+        self.end_headers()
+        self.wfile.write(message)
+
+    def _run_route(self,method):
         match_length=0
         route_handler=None
-        for route in self.server.routes["GET"]:
-            for url in route["urls"]:
-                match = re.compile("("+url+")").match(self.path)
-                if hasattr(match,"groups"):
-                    matched_group = match.group()
-                    if match_length < matched_group:
-                        match_length= len(matched_group)
-                        route_handler = route["handler"]
-        if route_handler:
-            route_handler(self)
+        try:
+            for route in self.server.routes[method]:
+                for url in route["urls"]:
+                    match = re.compile("("+url+")($|\?|;)").match(self.path)
+                    if hasattr(match,"groups"):
+                        matched_group = match.group()
+                        if match_length < matched_group:
+                            match_length= len(matched_group)
+                            route_handler = route["handler"]
+            if route_handler:
+                route_handler(self)
+            else:
+                self.not_found()
+        except KeyError, e:
+            self.not_found()
+
+    def do_GET(self):
+        self._run_route("GET")
 
     def do_POST(self):
-        match_length=0
-        route_handler=None
-        for route in self.server.routes["GET"]:
-            for url in route["urls"]:
-                match = re.compile("("+url+")").match(self.path)
-                if hasattr(match,"groups"):
-                    matched_group = match.group()
-                    if match_length < matched_group:
-                        match_length= len(matched_group)
-                        route_handler = route["handler"]
-        if route_handler:
-            route_handler(self)
+        self._run_route("POST")
 
+    def do_PUT(self):
+        self._run_route("PUT")
+
+    def do_DELETE(self):
+        self._run_route("DELETE")
+
+    def do_HEAD(self):
+        self._run_route("HEAD")
