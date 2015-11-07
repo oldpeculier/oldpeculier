@@ -143,8 +143,9 @@ class RestServer(PooledProcessMixIn, HTTPServer, Common):
 
 class RestHandler(BaseHTTPRequestHandler):
     def log_message(self, frmt, *args):
-        #TODO allow this to be redirected
-        pass
+        print self.server.logger.getEffectiveLevel()
+        if self.server.logger.getEffectiveLevel() <= 20:
+            self.server.logger.info("%s %s" %(self.client_address[0],frmt%args))
 
     def method_not_allowed(self):
         self.send(code=401, message="Authorization Required\n")

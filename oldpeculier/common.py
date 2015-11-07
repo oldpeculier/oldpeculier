@@ -47,16 +47,20 @@ class Common(object):
         handler.setFormatter(formatter) 
         self.logger.addHandler(handler)
         if hasattr(self,'logger_level'):
-            if re.search('^debug$',kwargs['logger_level'],re.IGNORECASE): 
-                self.logger.setLevel(logging.DEBUG)
-            elif re.search('^info$',kwargs['logger_level'],re.IGNORECASE):
-                self.logger.setLevel(logging.INFO)
-            elif re.search('^(warn|warning)$',kwargs['logger_level'],re.IGNORECASE):
+            try:
+                if re.search('^debug$',kwargs['logger_level'],re.IGNORECASE): 
+                    self.logger.setLevel(logging.DEBUG)
+                elif re.search('^info$',kwargs['logger_level'],re.IGNORECASE):
+                    self.logger.setLevel(logging.INFO)
+                elif re.search('^(warn|warning)$',kwargs['logger_level'],re.IGNORECASE):
+                    self.logger.setLevel(logging.WARNING)
+                elif re.search('^(err|error)$',kwargs['logger_level'],re.IGNORECASE):
+                    self.logger.setLevel(logging.ERROR)
+                elif re.search('^critical$',kwargs['logger_level'],re.IGNORECASE):
+                    self.logger.setLevel(logging.CRITICAL)
+                else:
+                    self.logger.setLevel(logging.WARNING)
+            except Exception, e:
                 self.logger.setLevel(logging.WARNING)
-            elif re.search('^(err|error)$',kwargs['logger_level'],re.IGNORECASE):
-                self.logger.setLevel(logging.ERROR)
-            elif re.search('^critical$',kwargs['logger_level'],re.IGNORECASE):
-                self.logger.setLevel(logging.CRITICAL)
-            else:
-                self.logger.setLevel(logging.WARNING)
+        
             del self.logger_level

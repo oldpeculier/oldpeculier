@@ -11,24 +11,20 @@ import threading
 
 thread=None
 parent_thread=None
-def start_server():
-    server=RestServer()
+def start_server(loglevel=None):
+    server=RestServer(logger_level=loglevel)
     server.register_route(urlpatterns=["/"],verbs=["GET"]);
     server.serve_forever()
 
-def initialize(*args):
-    client = RestClient(url="http://localhost:3333")
-    client.agent.request(*args)
-    return client
-
 class RestServerLiveTests(unittest.TestCase,BaseUnitTest):
-    def __init__(self,testmethod=None):
+    def __init__(self,testmethod=None, loglevel=None):
         if testmethod:
+            self.client = RestClient(url="http://localhost:3333",logger_level=loglevel)
             super(RestServerLiveTests,self).__init__(testmethod)
 
     def test_get(self):
-        client = initialize("GET","/")
-        response = client.agent.getresponse()
+        self.client.agent.request("GET","/")
+        response = self.client.agent.getresponse()
         self.assertEquals(response.status,200)
 
 def start_live_tests():
@@ -48,4 +44,4 @@ if __name__ == '__main__':
     parent_thread = threading.current_thread()
     thread = threading.Thread(target=start_live_tests, args=(), kwargs={})
     thread.start()
-    start_server()
+    start_server(RestServerLiveTests().get_log_level(sys.argv))

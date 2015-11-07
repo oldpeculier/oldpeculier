@@ -11,13 +11,15 @@ from oldpeculier.tests.unit.base import BaseUnitTest
 def initialize(**kargs):
     return Common(**kargs)
     
+# TODO create all objects at the specified loglevel
 class CommonTests(unittest.TestCase,BaseUnitTest):
-    def __init__(self,testmethod=None):
+    def __init__(self,testmethod=None, loglevel=None):
         if testmethod:
+            self.loglevel=loglevel
             super(CommonTests,self).__init__(testmethod)
 
     def test_that_attributes_are_inherited(self):
-        common = initialize(first="one",second="two")
+        common = initialize(first="one",second="two",logger_level=self.loglevel)
         self.assertEquals(common.first,"one")
         self.assertEquals(common.second,"two")
 
@@ -61,7 +63,7 @@ class CommonTests(unittest.TestCase,BaseUnitTest):
         common.logger.warning("test 123 321 tset")
         sys.stdout = old_stdout
         self.assertRegexpMatches(mystdout.getvalue(),
-            "^WARNING \[PID:.*\] .* \[FILE:.+?common.py:.*\] - test 123 321 tset$")
+            "^WARNING \[PID:.*\] .* \[FILE:(.+?|)common.py:.*\] - test 123 321 tset$")
         common.logger.handlers=[]
 
     def test_logger_writes_to_the_specified_file(self):
@@ -71,7 +73,7 @@ class CommonTests(unittest.TestCase,BaseUnitTest):
         common.logger.warning("test 123 321 tset")
         lines = tuple(open(f.name,'r'))
         self.assertRegexpMatches(lines[0],
-            "^WARNING \[PID:.*\] .* \[FILE:.+?common.py:.*\] - test 123 321 tset$")
+            "^WARNING \[PID:.*\] .* \[FILE:(.+?|)common.py:.*\] - test 123 321 tset$")
 
 if __name__ == '__main__':
     CommonTests().main(sys.argv[1:])

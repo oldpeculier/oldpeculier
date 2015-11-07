@@ -8,9 +8,9 @@ from httplib import HTTPConnection, HTTPSConnection
 
 def initialize(**kwargs):
     return RestServer(**kwargs)
-
+# TODO create all objects at the specified loglevel
 class RestServerTests(unittest.TestCase,BaseUnitTest):
-    def __init__(self,testmethod=None):
+    def __init__(self,testmethod=None, loglevel=None):
         if testmethod:
             super(RestServerTests,self).__init__(testmethod)
     

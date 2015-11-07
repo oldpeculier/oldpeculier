@@ -9,8 +9,9 @@ from httplib import HTTPConnection, HTTPSConnection
 def initialize(**kargs):
     return RestClient(**kargs)
 
+# TODO create all objects at the specified loglevel
 class RestClientTests(unittest.TestCase,BaseUnitTest):
-    def __init__(self,testmethod=None):
+    def __init__(self,testmethod=None, loglevel=None):
         self.url = "://www.amazon.com"
         if testmethod:
             super(RestClientTests,self).__init__(testmethod)
