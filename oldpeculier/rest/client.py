@@ -26,16 +26,20 @@ class RestClient(Common):
             self.scheme="http"
         else:
             setattr(self,"scheme",url.scheme)
-       
-        if url.port:
-            self.port=url.port
-        else:
-            if re.search('^https$',self.scheme):
-                self.port=443
-                self.agent = HTTPSConnection(self.url,self.port)
-            elif re.search('^http$',self.scheme):
-                self.port=80
-                self.agent = HTTPConnection(self.url,self.port)
+
+        if re.search('^https$',self.scheme):
+            if url.port:
+                self.port=url.port
             else:
-                raise ValueError("Scheme {0} is not a supported type for class {1}"
-                    .format(self.scheme,type(self).__name__))
+                self.port=443
+            self.agent = HTTPSConnection(url.hostname,self.port)
+        elif re.search('^http$',self.scheme):
+            if url.port:
+                self.port=url.port
+            else:
+                self.port=80
+            self.agent = HTTPConnection(url.hostname,self.port)
+        else:
+            raise ValueError("Scheme {0} is not a supported type for class {1}"
+                .format(self.scheme,type(self).__name__))
+         

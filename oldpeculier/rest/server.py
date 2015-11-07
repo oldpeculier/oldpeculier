@@ -41,7 +41,7 @@ class PooledProcessMixIn:
 
     def __init__(self):
         self._process_n = getattr(self, '_process_n', max(2, cpu_count()))
-        self._thread_n = getattr(self, '_thread_n', 64)
+        self._thread_n = getattr(self, '_thread_n', 63)
         self._keep_running = Value('i', 1)
         self._event = Event()
         self._semaphore = Semaphore(1)
@@ -74,15 +74,16 @@ class PooledProcessMixIn:
             self._real_handle_request_noblock()
 
     def shutdown(self,signal=None,frame=None):
+        print ""
         for p in self._processes:
-            print "shutting down process %s" %(p.pid)
+            self.logger.info("shutting down process %s" %(p.pid))
             p.terminate()
         exit(0)
 
 def default_handler(request):
-    qparams={}
-    bparams={}
-    params={}
+    qparams={} # params provided by url
+    bparams={} # params provided by the body
+    params={} # combined results
     message = "\nThis is the default handler. It echo's what you send.\n\n"
     message += "REQUEST HEADERS\n"
     for header in request.headers.keys():
@@ -136,9 +137,15 @@ class RestServer(PooledProcessMixIn, HTTPServer, Common):
         PooledProcessMixIn.__init__(self)
         signal.signal(signal.SIGINT,self.shutdown)
         return super(RestServer,self).serve_forever()
-        
+
+    def shutdown_server(self):
+        self.shutdown()
 
 class RestHandler(BaseHTTPRequestHandler):
+    def log_message(self, frmt, *args):
+        #TODO allow this to be redirected
+        pass
+
     def method_not_allowed(self):
         self.send(code=401, message="Authorization Required\n")
 

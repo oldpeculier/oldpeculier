@@ -15,6 +15,16 @@ CLASSIFIERS = [
 requires = []
 tests_require = []
 here = os.path.abspath(os.path.dirname(__file__))
+testsuite="oldpeculier.tests.unit"
+#if "--all" in sys.argv:
+#    testsuite="oldpeculier.tests"
+#    sys.argv.remove("--all")
+#elif "--live" in sys.argv:
+#    testsuite="oldpeculier.tests.live"
+#    sys.argv.remove("--live")
+#elif "--unit" in sys.argv:
+#    sys.argv.remove("--unit")
+
 try:
     README = open(os.path.join(here, 'README.rst')).read()
     CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
@@ -38,5 +48,5 @@ dist = setup(
     tests_require=tests_require,
     include_package_data=True,
 #    zip_safe=False,
-    test_suite="oldpeculier.tests",
+    test_suite=testsuite,
 )
