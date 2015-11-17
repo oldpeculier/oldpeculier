@@ -15,11 +15,10 @@ def initialize(**kargs):
 class CommonTests(unittest.TestCase,BaseUnitTest):
     def __init__(self,testmethod=None, loglevel=None):
         if testmethod:
-            self.loglevel=loglevel
             super(CommonTests,self).__init__(testmethod)
 
     def test_that_attributes_are_inherited(self):
-        common = initialize(first="one",second="two",logger_level=self.loglevel)
+        common = initialize(first="one",second="two")
         self.assertEquals(common.first,"one")
         self.assertEquals(common.second,"two")
 

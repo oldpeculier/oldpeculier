@@ -11,7 +11,6 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from multiprocessing import Process, Event, Semaphore, Value, cpu_count
 from SocketServer import BaseServer # for shutdown
 from threading import Thread
-#sys.path.append('../../../oldpeculier')
 from oldpeculier.common import Common
 
 # Credit to Muayyad Alsadi:
@@ -84,8 +83,10 @@ def default_handler(request):
     qparams={} # params provided by url
     bparams={} # params provided by the body
     params={} # combined results
+    print dir(request)
     message = "\nThis is the default handler. It echo's what you send.\n\n"
-    message += "REQUEST HEADERS\n"
+    message += "{0} {1} {2}\nREQUEST HEADERS\n".format(
+        request.method,request.path,request.protocol_version)
     for header in request.headers.keys():
         message += " > {0}: {1}\n".format(header,request.headers.get(header))
 
@@ -96,7 +97,7 @@ def default_handler(request):
             if len(param) == 1:
                 qparams[key]=param[0]
 
-    message += "\nREQUEST BODY\n" 
+    message += "REQUEST BODY\n" 
     if request.headers.has_key('Content-Length'):
         contentlength = int(request.headers.get('Content-Length'))
         body = request.rfile.read(contentlength)
@@ -108,14 +109,16 @@ def default_handler(request):
         message += body+"\n"
 
     params = dict(qparams.items() + bparams.items())
-    message += "\nREQUEST PARAMETERS\n" 
+    message += "REQUEST PARAMETERS\n" 
     for key, param in params.items():
         if isinstance(param,list):
             for p in param:
                 message += " > {0}: {1}\n".format(key,p)
         else:
             message += " > {0}: {1}\n".format(key,param)
-
+    request.server.logger.debug("START: Writing output to %s" %request.client_address[0])
+    request.server.logger.debug("\n%s" %message)
+    request.server.logger.debug("DONE: Writing output to %s" %request.client_address[0])
     request.send_response(200)
     request.send_header("Content-Length",len(message))
     request.end_headers()
@@ -147,10 +150,10 @@ class RestHandler(BaseHTTPRequestHandler):
         if self.server.logger.getEffectiveLevel() <= 20:
             self.server.logger.info("%s %s" %(self.client_address[0],frmt%args))
 
-    def method_not_allowed(self):
+    def authorization_required(self):
         self.send(code=401, message="Authorization Required\n")
 
-    def method_not_allowed(self):
+    def not_authorized(self):
         self.send(code=403, message="Not Authorized\n")
 
     def not_found(self):
@@ -185,16 +188,21 @@ class RestHandler(BaseHTTPRequestHandler):
             self.not_found()
 
     def do_GET(self):
-        self._run_route("GET")
+        self.method="GET"
+        self._run_route(self.method)
 
     def do_POST(self):
-        self._run_route("POST")
+        self.method="POST"
+        self._run_route(self.method)
 
     def do_PUT(self):
-        self._run_route("PUT")
+        self.method="PUT"
+        self._run_route(self.method)
 
     def do_DELETE(self):
-        self._run_route("DELETE")
+        self.method="DELETE"
+        self._run_route(self.method)
 
     def do_HEAD(self):
-        self._run_route("HEAD")
+        self.method="HEAD"
+        self._run_route(self.method)

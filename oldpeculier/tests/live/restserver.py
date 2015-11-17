@@ -22,10 +22,15 @@ class RestServerLiveTests(unittest.TestCase,BaseUnitTest):
             self.client = RestClient(url="http://localhost:3333",logger_level=loglevel)
             super(RestServerLiveTests,self).__init__(testmethod)
 
-    def test_get(self):
+    def test_get_with_default_handler(self):
         self.client.agent.request("GET","/")
         response = self.client.agent.getresponse()
         self.assertEquals(response.status,200)
+        body = response.read()
+        self.assertRegexpMatches(body,".*localhost:3333.*")
+        self.assertRegexpMatches(body,".*REQUEST HEADERS.*")
+        self.assertRegexpMatches(body,".*REQUEST BODY.*")
+        self.assertRegexpMatches(body,".*REQUEST PARAMETERS.*")
 
 def start_live_tests():
     # give the server time to start
