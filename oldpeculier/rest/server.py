@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import json
+import magic
 import re
 import socket
 import signal
@@ -83,7 +84,7 @@ def default_handler(request):
     qparams={} # params provided by url
     bparams={} # params provided by the body
     params={} # combined results
-    print dir(request)
+    #print dir(request)
     message = "\nThis is the default handler. It echo's what you send.\n\n"
     message += "{0} {1} {2}\nREQUEST HEADERS\n".format(
         request.method,request.path,request.protocol_version)
@@ -101,12 +102,16 @@ def default_handler(request):
     if request.headers.has_key('Content-Length'):
         contentlength = int(request.headers.get('Content-Length'))
         body = request.rfile.read(contentlength)
-        try:
-            bparams = json.loads(body)
-            body = json.dumps(bparams, sort_keys=True, indent=2, separators=(',',': '))
-        except ValueError, e:
-            pass
-        message += body+"\n"
+        contenttype = request.headers.get('Content-Type')
+        if contenttype == None:
+            contenttype = magic.from_buffer(body[1:min(contentlength,1024)],mime=True)
+        if contenttype != "application/octet-stream":
+            try:
+                bparams = json.loads(body)
+                body = json.dumps(bparams, sort_keys=True, indent=2, separators=(',',': '))
+            except ValueError, e:
+                pass
+            message += body+"\n"
 
     params = dict(qparams.items() + bparams.items())
     message += "REQUEST PARAMETERS\n" 
@@ -146,21 +151,27 @@ class RestServer(PooledProcessMixIn, HTTPServer, Common):
 
 class RestHandler(BaseHTTPRequestHandler):
     def log_message(self, frmt, *args):
-        print self.server.logger.getEffectiveLevel()
+        #print self.server.logger.getEffectiveLevel()
         if self.server.logger.getEffectiveLevel() <= 20:
             self.server.logger.info("%s %s" %(self.client_address[0],frmt%args))
 
-    def authorization_required(self):
-        self.send(code=401, message="Authorization Required\n")
+    def authorization_required(self,message="Authorization Required\n"):
+        self.send(code=401, message=message)
 
-    def not_authorized(self):
-        self.send(code=403, message="Not Authorized\n")
+    def not_authorized(self,message="Forbidden\n"):
+        self.send(code=403, message=message)
 
-    def not_found(self):
-        self.send(code=404, message="Not Found\n")
+    def not_found(self,message="Not Found\n"):
+        self.send(code=404, message=message)
 
-    def method_not_allowed(self):
-        self.send(code=405, message="Method Not Allowed\n")
+    def method_not_allowed(self,message="Method Not Allowed\n"):
+        self.send(code=405, message=message)
+    
+    def conflict(self,message="Conflict\n"):
+        self.send(code=409, message=message)
+
+    def unsupported_media_type(self,message="Unsupported Media Type\n"):
+        self.send(code=415, message=message)
 
     def send(self,code,message):
         self.send_response(code)
