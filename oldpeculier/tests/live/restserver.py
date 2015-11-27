@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import json
 import os
 import requests
 import signal
@@ -13,37 +14,81 @@ thread=None
 parent_thread=None
 def start_server(loglevel=None):
     server=RestServer(logger_level=loglevel)
-    server.register_route(urlpatterns=["/"],verbs=["GET"]);
-    server.register_route(urlpatterns=["/"],verbs=["POST"]);
+    server.register_route(urlpatterns=["/"],verbs=["GET","PUT"]);
+    server.register_route(urlpatterns=["/post"],verbs=["POST"]);
     server.serve_forever()
 
 class RestServerLiveTests(unittest.TestCase,BaseUnitTest):
     def __init__(self,testmethod=None, loglevel=None):
+        self.base_url = "http://localhost:3333"
         if testmethod:
             super(RestServerLiveTests,self).__init__(testmethod)
 
     def test_get_with_default_handler(self):
-        response = requests.get("http://localhost:3333")
+        response = requests.get(self.base_url)
         self.assertEquals(response.status_code,200)
         body = response.text
+        self.assertRegexpMatches(body,".*GET.*")
         self.assertRegexpMatches(body,".*localhost:3333.*")
         self.assertRegexpMatches(body,".*REQUEST HEADERS.*")
         self.assertRegexpMatches(body,".*REQUEST BODY.*")
         self.assertRegexpMatches(body,".*REQUEST PARAMETERS.*")
 
-    #def test_post_with_default_handler(self):
-    #    headers = {
-    #        "content-type":"application/x-www-form-urlencoded"
-    #    }
-    #    response = self.client.request("POST","/","{\"token\":\"abc\"}",headers)
-    #    #response = self.client.agent.getresponse()
-    #    self.assertEquals(response.status,200)
-    #    body = response.read()
+    def test_post_with_default_handler(self):
+        headers = {
+            "content-type":"application/x-www-form-urlencoded"
+        }
+        data = {
+            "token":"abc"
+        }
+        response = requests.post(self.base_url+"/post?token=123", headers=headers,
+            data=data)    
+        self.assertEquals(response.status_code,200)
+        body = response.text
+        self.assertRegexpMatches(body,".*POST.*\/post")
+        self.assertRegexpMatches(body,".*localhost:3333.*")
+        self.assertRegexpMatches(body,".*content-type.*application.*www-form.*")
+        self.assertRegexpMatches(body,".*token:.*123.*")
+        self.assertRegexpMatches(body,".*token:.*abc.*")
+        self.assertRegexpMatches(body,".*REQUEST HEADERS.*")
+        self.assertRegexpMatches(body,".*REQUEST BODY.*")
+        self.assertRegexpMatches(body,".*REQUEST PARAMETERS.*")
+
+    def test_put_with_default_handler(self):
+        headers = {
+            "content-type":"application/json"
+        }
+        data = {
+            "token":"abc"
+        }
+        response = requests.put(self.base_url+"?token=123", headers=headers,
+            data=json.dumps(data))    
+        self.assertEquals(response.status_code,200)
+        body = response.text
+        self.assertRegexpMatches(body,".*PUT.*")
+        self.assertRegexpMatches(body,".*localhost:3333.*")
+        self.assertRegexpMatches(body,".*content-type.*application.*json.*")
+        self.assertRegexpMatches(body,".*token:.*123.*")
+        self.assertRegexpMatches(body,".*token:.*abc.*")
+        self.assertRegexpMatches(body,".*REQUEST HEADERS.*")
+        self.assertRegexpMatches(body,".*REQUEST BODY.*")
+        self.assertRegexpMatches(body,".*REQUEST PARAMETERS.*")
+
+    #def test_post_multi_part(self):
+#>>> from cgi import parse_multipart
+#>>> d=parse_multipart(open("/tmp/junk"),{'boundary':'86cf9e25db6444c0a70f09b3ba63e57b'})
+    #    files = [('name1', open("./restserver.py","rb")),('name2',open("../../common.py"))]
+    #    response = requests.put(self.base_url+"?token=123", files=files)
+    #    self.assertEquals(response.status_code,200)
+    #    body = response.text
     #    print body
-    #    self.assertRegexpMatches(body,".*localhost:3333.*")
-    #    self.assertRegexpMatches(body,".*REQUEST HEADERS.*")
-    #    self.assertRegexpMatches(body,".*REQUEST BODY.*")
-    #    self.assertRegexpMatches(body,".*REQUEST PARAMETERS.*")
+
+    def test_post_binary_file(self):
+        with open("./random.bits","rb") as f:
+            response = requests.put(self.base_url+"?token=123", data=f)
+        self.assertEquals(response.status_code,200)
+        body = response.text
+        print body
 
 def start_live_tests():
     # give the server time to start

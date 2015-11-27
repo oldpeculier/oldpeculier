@@ -93,10 +93,7 @@ def default_handler(request):
 
     parsed_url = urlparse.urlparse(request.path)
     if  parsed_url.query:
-        qparams = urlparse.parse_qs(parsed_url.query)
-        for key, param in qparams.items():
-            if len(param) == 1:
-                qparams[key]=param[0]
+        qparams = request.get_form_params(parsed_url.query)
 
     message += "REQUEST BODY\n" 
     if request.headers.has_key('Content-Length'):
@@ -108,12 +105,23 @@ def default_handler(request):
         if contenttype != "application/octet-stream":
             try:
                 bparams = json.loads(body)
-                body = json.dumps(bparams, sort_keys=True, indent=2, separators=(',',': '))
+                body = json.dumps(bparams, sort_keys=True, indent=2, 
+                    separators=(',',': '))
             except ValueError, e:
+                bparams = request.get_form_params(body)
                 pass
             message += body+"\n"
-
-    params = dict(qparams.items() + bparams.items())
+        else:
+            message += "binary data received\n"
+    params = qparams
+    for key,value in bparams.iteritems():
+        if not params.has_key(key):
+             params[key]=value
+        else:
+            if not isinstance(params[key],list):
+                params[key]=[params[key]]
+            params[key].append(value)
+    #params = dict(qparams.items() + bparams.items())
     message += "REQUEST PARAMETERS\n" 
     for key, param in params.items():
         if isinstance(param,list):
@@ -150,6 +158,14 @@ class RestServer(PooledProcessMixIn, HTTPServer, Common):
         self.shutdown()
 
 class RestHandler(BaseHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'
+    def get_form_params(self,content):
+        params = urlparse.parse_qs(content)
+        for key, param in params.items():
+            if len(param) == 1:
+                params[key]=param[0]
+        return params
+
     def log_message(self, frmt, *args):
         #print self.server.logger.getEffectiveLevel()
         if self.server.logger.getEffectiveLevel() <= 20:
