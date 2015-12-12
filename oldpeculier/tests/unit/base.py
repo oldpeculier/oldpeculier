@@ -2,7 +2,8 @@
 import sys
 import unittest
 import re
-
+# Any test that inherits this class can be called to run specific test:
+# python ./sometest.py test_specific_method_name
 class BaseUnitTest(object):
     def get_log_level(self,args):
         loglevel='warn'

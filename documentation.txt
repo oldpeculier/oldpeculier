@@ -1,0 +1,1 @@
+You can call any method in any test by simply typing: python test.py test_method_name

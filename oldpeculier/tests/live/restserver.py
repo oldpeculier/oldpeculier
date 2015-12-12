@@ -88,7 +88,6 @@ class RestServerLiveTests(unittest.TestCase,BaseUnitTest):
             response = requests.put(self.base_url+"?token=123", data=f)
         self.assertEquals(response.status_code,200)
         body = response.text
-        print body
 
 def start_live_tests():
     # give the server time to start

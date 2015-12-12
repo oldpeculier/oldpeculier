@@ -7,6 +7,7 @@ import signal
 import sys
 import time # might be used for shutdown
 import urlparse
+import hashlib
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from multiprocessing import Process, Event, Semaphore, Value, cpu_count
@@ -98,21 +99,51 @@ def default_handler(request):
     message += "REQUEST BODY\n" 
     if request.headers.has_key('Content-Length'):
         contentlength = int(request.headers.get('Content-Length'))
-        body = request.rfile.read(contentlength)
+        sample_size = 1024
+        bytes_received = 0
+        sig = hashlib.md5()
+        body = None
+        body_sample = None
         contenttype = request.headers.get('Content-Type')
-        if contenttype == None:
-            contenttype = magic.from_buffer(body[1:min(contentlength,1024)],mime=True)
+
+        while True:
+            body = request.rfile.read(min(sample_size,contentlength-bytes_received))
+            if not body:
+                break
+            if not body_sample:
+                body_sample = body
+            if not contenttype:
+                contenttype = magic.from_buffer(body,mime=True)
+            bytes_received += min(len(body),request.rfile.default_bufsize)
+            sig.update(body)
+
+        message += " > ({0}) bytes of {2} data received.  MD5={1}\n".format(
+            bytes_received,sig.hexdigest(),contenttype)
+        #body = request.rfile.read(min(contentlength,sample_size))
+        #contenttype = request.headers.get('Content-Type')
+        #if contenttype == None:
+        #    contenttype = magic.from_buffer(body,mime=True)
         if contenttype != "application/octet-stream":
             try:
-                bparams = json.loads(body)
-                body = json.dumps(bparams, sort_keys=True, indent=2, 
+                bparams = json.loads(body_sample)
+                body_sample = json.dumps(bparams, indent=2, 
                     separators=(',',': '))
             except ValueError, e:
-                bparams = request.get_form_params(body)
+                bparams = request.get_form_params(body_sample)
                 pass
-            message += body+"\n"
-        else:
-            message += "binary data received\n"
+            message += body_sample+"\n" # Just give back the first 1k
+        #else:
+        #    bytes_received = len(body)
+        #    sig = hashlib.md5()
+        #    sig.update(body)
+        #    while True:
+        #        body = request.rfile.read(min(sample_size,contentlength-bytes_received))
+        #        if not body:
+        #            break
+        #        sig.update(body)
+        #        bytes_received += min(len(body),request.rfile.default_bufsize)
+        #    message += " > ({0}) bytes of binary data received.  MD5={1}\n".format(
+        #        bytes_received,sig.hexdigest())
     params = qparams
     for key,value in bparams.iteritems():
         if not params.has_key(key):
