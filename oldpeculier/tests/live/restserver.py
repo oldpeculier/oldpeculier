@@ -1,26 +1,40 @@
 #!/usr/bin/env python
+import atexit
 import json
 import os
 import requests
+import shutil
 import signal
 import sys
+import tempfile
 import time
 import unittest
 from oldpeculier.rest.server import RestServer, RestHandler
 from oldpeculier.tests.unit.base import BaseUnitTest
 import threading
 
-thread=None
-parent_thread=None
+thread = None
+parent_thread = None
+port = 3332
+address =  "localhost"
+
+def exit_handler():
+    if dirpath:
+        shutil.rmtree(dirpath)
+
 def start_server(loglevel=None):
-    server=RestServer(logger_level=loglevel)
+    global server, dirpath
+    dirpath = tempfile.mkdtemp()
+    server=RestServer(logger_level=loglevel, bind_address=address, port=port,
+        logger_location=dirpath+"/"+"live_rest_tests.log")
     server.register_route(urlpatterns=["/"],verbs=["GET","PUT"]);
     server.register_route(urlpatterns=["/post"],verbs=["POST"]);
+    atexit.register(exit_handler)
     server.serve_forever()
 
 class RestServerLiveTests(unittest.TestCase,BaseUnitTest):
     def __init__(self,testmethod=None, loglevel=None):
-        self.base_url = "http://localhost:3333"
+        self.base_url = "http://" + address + ":" + str(port)
         if testmethod:
             super(RestServerLiveTests,self).__init__(testmethod)
 
@@ -29,7 +43,7 @@ class RestServerLiveTests(unittest.TestCase,BaseUnitTest):
         self.assertEquals(response.status_code,200)
         body = response.text
         self.assertRegexpMatches(body,".*GET.*")
-        self.assertRegexpMatches(body,".*localhost:3333.*")
+        self.assertRegexpMatches(body,".*" + address + ":" + str(port) + ".*")
         self.assertRegexpMatches(body,".*REQUEST HEADERS.*")
         self.assertRegexpMatches(body,".*REQUEST BODY.*")
         self.assertRegexpMatches(body,".*REQUEST PARAMETERS.*")
@@ -46,13 +60,13 @@ class RestServerLiveTests(unittest.TestCase,BaseUnitTest):
         self.assertEquals(response.status_code,200)
         body = response.text
         self.assertRegexpMatches(body,".*POST.*\/post")
-        self.assertRegexpMatches(body,".*localhost:3333.*")
+        self.assertRegexpMatches(body,".*" + address + ":" + str(port) + ".*")
         self.assertRegexpMatches(body,".*content-type.*application.*www-form.*")
-        self.assertRegexpMatches(body,".*token:.*123.*")
-        self.assertRegexpMatches(body,".*token:.*abc.*")
         self.assertRegexpMatches(body,".*REQUEST HEADERS.*")
         self.assertRegexpMatches(body,".*REQUEST BODY.*")
+        self.assertRegexpMatches(body,".*34b5239544b531f3b3c430df9a02363c.*")
         self.assertRegexpMatches(body,".*REQUEST PARAMETERS.*")
+        self.assertRegexpMatches(body,".*token: 123.*")
 
     def test_put_with_default_handler(self):
         headers = {
@@ -62,17 +76,17 @@ class RestServerLiveTests(unittest.TestCase,BaseUnitTest):
             "token":"abc"
         }
         response = requests.put(self.base_url+"?token=123", headers=headers,
-            data=json.dumps(data))    
+            data=json.dumps(data,separators=(',',':')))    
         self.assertEquals(response.status_code,200)
         body = response.text
         self.assertRegexpMatches(body,".*PUT.*")
-        self.assertRegexpMatches(body,".*localhost:3333.*")
+        self.assertRegexpMatches(body,".*" + address + ":" + str(port) + ".*")
         self.assertRegexpMatches(body,".*content-type.*application.*json.*")
-        self.assertRegexpMatches(body,".*token:.*123.*")
-        self.assertRegexpMatches(body,".*token:.*abc.*")
         self.assertRegexpMatches(body,".*REQUEST HEADERS.*")
         self.assertRegexpMatches(body,".*REQUEST BODY.*")
+        self.assertRegexpMatches(body,".*6fe576639319fefd7b6785c11b06a694.*")
         self.assertRegexpMatches(body,".*REQUEST PARAMETERS.*")
+        self.assertRegexpMatches(body,".*token: 123.*")
 
     #def test_post_multi_part(self):
 #>>> from cgi import parse_multipart
@@ -88,6 +102,17 @@ class RestServerLiveTests(unittest.TestCase,BaseUnitTest):
             response = requests.put(self.base_url+"?token=123", data=f)
         self.assertEquals(response.status_code,200)
         body = response.text
+        self.assertRegexpMatches(body,".*PUT.*")
+        self.assertRegexpMatches(body,".*" + address + ":" + str(port) + ".*")
+        self.assertRegexpMatches(body,".*application.*stream.*")
+        self.assertRegexpMatches(body,".*REQUEST HEADERS.*")
+        self.assertRegexpMatches(body,".*REQUEST BODY.*")
+        self.assertRegexpMatches(body,".*17e56442d3da89ba2f46dd43781864e9.*")
+        self.assertRegexpMatches(body,".*REQUEST PARAMETERS.*")
+        self.assertRegexpMatches(body,".*token: 123.*")
+
+    def test_rest_server_logging(self):
+        self.assertTrue(os.path.exists(dirpath))
 
 def start_live_tests():
     # give the server time to start

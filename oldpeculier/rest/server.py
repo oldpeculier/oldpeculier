@@ -85,7 +85,6 @@ def default_handler(request):
     qparams={} # params provided by url
     bparams={} # params provided by the body
     params={} # combined results
-    #print dir(request)
     message = "\nThis is the default handler. It echo's what you send.\n\n"
     message += "{0} {1} {2}\nREQUEST HEADERS\n".format(
         request.method,request.path,request.protocol_version)
@@ -103,15 +102,12 @@ def default_handler(request):
         bytes_received = 0
         sig = hashlib.md5()
         body = None
-        body_sample = None
         contenttype = request.headers.get('Content-Type')
 
         while True:
             body = request.rfile.read(min(sample_size,contentlength-bytes_received))
             if not body:
                 break
-            if not body_sample:
-                body_sample = body
             if not contenttype:
                 contenttype = magic.from_buffer(body,mime=True)
             bytes_received += min(len(body),request.rfile.default_bufsize)
@@ -119,31 +115,7 @@ def default_handler(request):
 
         message += " > ({0}) bytes of {2} data received.  MD5={1}\n".format(
             bytes_received,sig.hexdigest(),contenttype)
-        #body = request.rfile.read(min(contentlength,sample_size))
-        #contenttype = request.headers.get('Content-Type')
-        #if contenttype == None:
-        #    contenttype = magic.from_buffer(body,mime=True)
-        if contenttype != "application/octet-stream":
-            try:
-                bparams = json.loads(body_sample)
-                body_sample = json.dumps(bparams, indent=2, 
-                    separators=(',',': '))
-            except ValueError, e:
-                bparams = request.get_form_params(body_sample)
-                pass
-            message += body_sample+"\n" # Just give back the first 1k
-        #else:
-        #    bytes_received = len(body)
-        #    sig = hashlib.md5()
-        #    sig.update(body)
-        #    while True:
-        #        body = request.rfile.read(min(sample_size,contentlength-bytes_received))
-        #        if not body:
-        #            break
-        #        sig.update(body)
-        #        bytes_received += min(len(body),request.rfile.default_bufsize)
-        #    message += " > ({0}) bytes of binary data received.  MD5={1}\n".format(
-        #        bytes_received,sig.hexdigest())
+
     params = qparams
     for key,value in bparams.iteritems():
         if not params.has_key(key):
@@ -152,7 +124,7 @@ def default_handler(request):
             if not isinstance(params[key],list):
                 params[key]=[params[key]]
             params[key].append(value)
-    #params = dict(qparams.items() + bparams.items())
+
     message += "REQUEST PARAMETERS\n" 
     for key, param in params.items():
         if isinstance(param,list):
@@ -170,6 +142,7 @@ def default_handler(request):
 
 class RestServer(PooledProcessMixIn, HTTPServer, Common):
     routes={}
+    bind_address=''
     def __init__(self, **kwargs):
         Common.__init__(self, **kwargs)
 
@@ -180,7 +153,7 @@ class RestServer(PooledProcessMixIn, HTTPServer, Common):
             self.routes[verb].append({'urls':urlpatterns,'handler':handler})
 
     def serve_forever(self):
-        HTTPServer.__init__(self, ('localhost',3333), RestHandler)
+        HTTPServer.__init__(self, (self.bind_address, self.port), RestHandler)
         PooledProcessMixIn.__init__(self)
         signal.signal(signal.SIGINT,self.shutdown)
         return super(RestServer,self).serve_forever()
